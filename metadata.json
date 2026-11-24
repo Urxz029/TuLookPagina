@@ -1,0 +1,6 @@
+{
+  "name": "TU LOOK",
+  "description": "Sitio de presentación e interacción de TU LOOK: tu armario digital y curador diario de atuendos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

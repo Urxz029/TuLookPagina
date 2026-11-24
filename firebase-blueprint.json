@@ -1,0 +1,244 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated TU LOOK user account profile with isolated PII.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 160,
+          "pattern": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "displayName", "email", "createdAt", "updatedAt"]
+    },
+    "WardrobeItem": {
+      "title": "WardrobeItem",
+      "description": "A digital wardrobe garment owned by an authenticated user.",
+      "type": "object",
+      "properties": {
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "category": {
+          "type": "string",
+          "enum": ["abrigos", "superiores", "pantalones", "calzado"]
+        },
+        "colorName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 40
+        },
+        "swatchHex": {
+          "type": "string",
+          "minLength": 7,
+          "maxLength": 7,
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "wearCount": {
+          "type": "number"
+        },
+        "pinned": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerUid",
+        "name",
+        "category",
+        "colorName",
+        "swatchHex",
+        "wearCount",
+        "pinned",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CommunityListing": {
+      "title": "CommunityListing",
+      "description": "Local neighborhood garment listing for easy exchange, loan, or local sale within a zone without exposing PII.",
+      "type": "object",
+      "properties": {
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "authorName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "title": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "category": {
+          "type": "string",
+          "enum": ["abrigos", "superiores", "pantalones", "calzado"]
+        },
+        "zone": {
+          "type": "string",
+          "enum": ["Providencia", "Las Condes", "Santiago Centro", "Ñuñoa", "Viña del Mar"]
+        },
+        "exchangeType": {
+          "type": "string",
+          "enum": ["Intercambio", "Préstamo", "Venta local"]
+        },
+        "size": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 12
+        },
+        "condition": {
+          "type": "string",
+          "enum": ["Como nueva", "Excelente estado", "Buen estado"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["available", "requested", "completed"]
+        },
+        "requestedByUid": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerUid",
+        "authorName",
+        "title",
+        "category",
+        "zone",
+        "exchangeType",
+        "size",
+        "condition",
+        "status",
+        "requestedByUid",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AccessRequest": {
+      "title": "AccessRequest",
+      "description": "Access request submitted from the TU LOOK landing page and routed to tulookoffve@gmail.com.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 160,
+          "pattern": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"
+        },
+        "platform": {
+          "type": "string",
+          "enum": ["Web", "iOS", "Android"]
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "recipientEmail": {
+          "type": "string",
+          "enum": ["tulookoffve@gmail.com"]
+        },
+        "deliveryMode": {
+          "type": "string",
+          "enum": ["smtp", "mailto", "firestore"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "reviewed", "archived"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "name",
+        "email",
+        "platform",
+        "note",
+        "recipientEmail",
+        "deliveryMode",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user profile documents strictly isolated to the owning verified user."
+    },
+    "/users/{userId}/wardrobe/{itemId}": {
+      "schema": { "$ref": "#/entities/WardrobeItem" },
+      "description": "User wardrobe garment items isolated per owner UID."
+    },
+    "/communityListings/{listingId}": {
+      "schema": { "$ref": "#/entities/CommunityListing" },
+      "description": "Neighborhood garment listings for local exchange, loan, or local purchase without exposing private user PII."
+    },
+    "/accessRequests/{requestId}": {
+      "schema": { "$ref": "#/entities/AccessRequest" },
+      "description": "Access request submissions; write-only intake with strict schema bounds, readable and manageable strictly by verified admins."
+    }
+  }
+}

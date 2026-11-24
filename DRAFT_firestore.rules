@@ -1,0 +1,331 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Hardened Helpers
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedEmail() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isVerifiedEmail() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidEmail(email) {
+      return email is string
+        && email.size() >= 5
+        && email.size() <= 160
+        && email.matches('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$');
+    }
+
+    function isAdmin() {
+      return isVerifiedEmail() && (
+        request.auth.token.email == 'cris.mancillam@duocuc.cl' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Validation Blueprints (Anti-Update-Gap)
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'displayName', 'email', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'email', 'createdAt', 'updatedAt'])
+        && data.uid is string
+        && data.uid == userId
+        && data.uid == request.auth.uid
+        && isValidId(data.uid)
+        && data.displayName is string
+        && data.displayName.size() >= 1
+        && data.displayName.size() <= 100
+        && isValidEmail(data.email)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidWardrobeItem(data, userId) {
+      return data.keys().hasAll([
+          'ownerUid',
+          'name',
+          'category',
+          'colorName',
+          'swatchHex',
+          'wearCount',
+          'pinned',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerUid',
+          'name',
+          'category',
+          'colorName',
+          'swatchHex',
+          'wearCount',
+          'pinned',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.ownerUid is string
+        && data.ownerUid == userId
+        && data.ownerUid == request.auth.uid
+        && isValidId(data.ownerUid)
+        && data.name is string
+        && data.name.size() >= 2
+        && data.name.size() <= 100
+        && data.category is string
+        && data.category in ['abrigos', 'superiores', 'pantalones', 'calzado']
+        && data.colorName is string
+        && data.colorName.size() >= 2
+        && data.colorName.size() <= 40
+        && data.swatchHex is string
+        && data.swatchHex.size() == 7
+        && data.swatchHex.matches('^#[0-9A-Fa-f]{6}$')
+        && data.wearCount is number
+        && data.wearCount >= 0
+        && data.wearCount <= 10000
+        && data.pinned is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCommunityListing(data) {
+      return data.keys().hasAll([
+          'ownerUid',
+          'authorName',
+          'title',
+          'category',
+          'zone',
+          'exchangeType',
+          'size',
+          'condition',
+          'status',
+          'requestedByUid',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerUid',
+          'authorName',
+          'title',
+          'category',
+          'zone',
+          'exchangeType',
+          'size',
+          'condition',
+          'status',
+          'requestedByUid',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.ownerUid is string
+        && isValidId(data.ownerUid)
+        && data.authorName is string
+        && data.authorName.size() >= 2
+        && data.authorName.size() <= 80
+        && data.title is string
+        && data.title.size() >= 2
+        && data.title.size() <= 100
+        && data.category is string
+        && data.category in ['abrigos', 'superiores', 'pantalones', 'calzado']
+        && data.zone is string
+        && data.zone in ['Providencia', 'Las Condes', 'Santiago Centro', 'Ñuñoa', 'Viña del Mar']
+        && data.exchangeType is string
+        && data.exchangeType in ['Intercambio', 'Préstamo', 'Venta local']
+        && data.size is string
+        && data.size.size() >= 1
+        && data.size.size() <= 12
+        && data.condition is string
+        && data.condition in ['Como nueva', 'Excelente estado', 'Buen estado']
+        && data.status is string
+        && data.status in ['available', 'requested', 'completed']
+        && data.requestedByUid is string
+        && data.requestedByUid.size() <= 128
+        && (data.requestedByUid == '' || isValidId(data.requestedByUid))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidAccessRequest(data) {
+      return data.keys().hasAll([
+          'name',
+          'email',
+          'platform',
+          'note',
+          'recipientEmail',
+          'deliveryMode',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'name',
+          'email',
+          'platform',
+          'note',
+          'recipientEmail',
+          'deliveryMode',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.name is string
+        && data.name.size() >= 2
+        && data.name.size() <= 100
+        && isValidEmail(data.email)
+        && data.platform is string
+        && data.platform in ['Web', 'iOS', 'Android']
+        && data.note is string
+        && data.note.size() <= 400
+        && data.recipientEmail is string
+        && data.recipientEmail == 'tulookoffve@gmail.com'
+        && data.deliveryMode is string
+        && data.deliveryMode in ['smtp', 'mailto', 'firestore']
+        && data.status is string
+        && data.status in ['pending', 'reviewed', 'archived']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Admins Collection: strictly locked against client writes
+    match /admins/{adminId} {
+      allow get: if isValidId(adminId) && isAdmin();
+      allow list: if false;
+      allow create, update, delete: if false;
+    }
+
+    // Users Profile Collection (PII strictly isolated to owner)
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if false;
+      allow create: if isOwner(userId)
+        && isValidId(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isOwner(userId)
+        && isValidId(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'email', 'updatedAt']);
+      allow delete: if false;
+
+      // User Digital Wardrobe Subcollection
+      match /wardrobe/{itemId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(itemId);
+        allow list: if isOwner(userId) && isValidId(userId) && resource.data.ownerUid == request.auth.uid;
+        allow create: if isOwner(userId)
+          && isValidId(userId)
+          && isValidId(itemId)
+          && isValidWardrobeItem(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/users/$(userId));
+        allow update: if isOwner(userId)
+          && isValidId(userId)
+          && isValidId(itemId)
+          && isValidWardrobeItem(incoming(), userId)
+          && incoming().ownerUid == existing().ownerUid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            incoming().diff(existing()).affectedKeys().hasOnly(['pinned', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['wearCount', 'pinned', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['name', 'category', 'colorName', 'swatchHex', 'updatedAt'])
+          );
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(itemId);
+      }
+    }
+
+    // Community Listings Collection (Public zone discovery without PII; action-gated updates)
+    match /communityListings/{listingId} {
+      allow get: if isValidId(listingId) && (
+        existing().status == 'available' ||
+        (isVerifiedEmail() && (existing().ownerUid == request.auth.uid || existing().requestedByUid == request.auth.uid))
+      );
+      allow list: if resource.data.status == 'available' ||
+        (isVerifiedEmail() && (resource.data.ownerUid == request.auth.uid || resource.data.requestedByUid == request.auth.uid));
+      allow create: if isVerifiedEmail()
+        && isValidId(listingId)
+        && isValidCommunityListing(incoming())
+        && incoming().ownerUid == request.auth.uid
+        && incoming().status == 'available'
+        && incoming().requestedByUid == ''
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedEmail()
+        && isValidId(listingId)
+        && isValidCommunityListing(incoming())
+        && existing().status != 'completed'
+        && incoming().ownerUid == existing().ownerUid
+        && incoming().authorName == existing().authorName
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Action 1: Neighbor requests an available garment
+          (
+            existing().status == 'available'
+            && existing().ownerUid != request.auth.uid
+            && incoming().status == 'requested'
+            && incoming().requestedByUid == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'requestedByUid', 'updatedAt'])
+          ) ||
+          // Action 2: Owner updates status (release request or mark completed)
+          (
+            existing().ownerUid == request.auth.uid
+            && (
+              (incoming().status == 'available' && incoming().requestedByUid == '') ||
+              (incoming().status == 'completed' && incoming().requestedByUid == existing().requestedByUid)
+            )
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'requestedByUid', 'updatedAt'])
+          )
+        );
+      allow delete: if isVerifiedEmail() && isValidId(listingId) && existing().ownerUid == request.auth.uid;
+    }
+
+    // Access Requests Collection: validated intake, admin-only reads & status transitions
+    match /accessRequests/{requestId} {
+      allow get: if isValidId(requestId) && isAdmin();
+      allow list: if isAdmin();
+      allow create: if isValidId(requestId)
+        && isValidAccessRequest(incoming())
+        && incoming().status == 'pending'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isAdmin()
+        && isValidId(requestId)
+        && isValidAccessRequest(incoming())
+        && existing().status != 'archived'
+        && incoming().name == existing().name
+        && incoming().email == existing().email
+        && incoming().platform == existing().platform
+        && incoming().note == existing().note
+        && incoming().recipientEmail == existing().recipientEmail
+        && incoming().deliveryMode == existing().deliveryMode
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']);
+      allow delete: if isValidId(requestId) && isAdmin();
+    }
+  }
+}
